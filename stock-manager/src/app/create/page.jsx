@@ -3,12 +3,14 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Swal from 'sweetalert2' 
 
 function CreatePostPage() {
   const [title, setTitle] = useState("");
-  const [img, setImg] = useState(""); // base64
-  const [preview, setPreview] = useState(null); // สำหรับ preview
+  const [img, setImg] = useState("");
+  const [preview, setPreview] = useState(null);
   const [content, setContent] = useState("");
+  const [quantity, setQuantity] = useState("");  // ฟิลด์จำนวนสินค้า
 
   const router = useRouter();
 
@@ -18,81 +20,128 @@ function CreatePostPage() {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImg(reader.result); // base64 string
-      setPreview(reader.result); // สำหรับ preview
+      setImg(reader.result);
+      setPreview(reader.result);
     };
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!title || !img || !content) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน!");
+  
+    const defaultImage = "https://via.placeholder.com/300"; // <== default image
+  
+    if (!title || !content || quantity <= 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'กรุณากรอกข้อมูลให้ครบถ้วน!',
+        confirmButtonText: 'ตกลง',
+      });
       return;
     }
-
+  
+    const imageToUpload = img || defaultImage; // <== ถ้าไม่เลือกภาพ จะใช้ภาพ default
+  
     try {
       const res = await fetch("/api/posts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ title, img, content })
+        body: JSON.stringify({
+            title,
+            img: imageToUpload,
+            content,
+            quantity: Number(quantity) // ✅ แปลงให้เป็นเลขก่อน
+          })
+          
       });
-
+  
       if (res.ok) {
-        router.push("/");
+        Swal.fire({
+          icon: 'success',
+          title: 'เพิ่มสินค้าสำเร็จ!',
+          showConfirmButton: false,
+          timer: 800
+        });
+  
+        setTimeout(() => {
+          router.push("/");  // เปลี่ยนไปหน้าหลัก
+        }, 900);
+  
       } else {
         throw new Error("เกิดข้อผิดพลาดในการสร้าง");
       }
     } catch (error) {
       console.log(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถเพิ่มสินค้าได้',
+        confirmButtonText: 'ลองอีกครั้ง'
+      });
     }
   };
+  
 
   return (
-    <div className='container mx-auto py-10'>
-      <h3 className='text-3xl font-bold'>Create Post</h3>
-      <hr className='my-3' />
-      <Link href="/" className='bg-gray-500 inline-block text-white border py-2 px-3 rounded my-2'>Go back</Link>
+    <div className='min-h-screen bg-gray-100 py-10 px-4'>
+      <div className='max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg'>
+        <h3 className='text-3xl font-extrabold text-center text-gray-800 mb-4'>เพิ่มสินค้าใหม่</h3>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          onChange={(e) => setTitle(e.target.value)}
-          type="text"
-          className='w-[300px] block bg-gray-200 border py-2 px-3 rounded text-lg my-2'
-          placeholder='Post title'
-        />
-
-        <input
-          onChange={handleImageChange}
-          type="file"
-          accept='image/*'
-          className='w-[300px] block bg-gray-200 border py-2 px-3 rounded text-lg my-2'
-        />
-
-        {preview && (
-          <img
-            src={preview}
-            alt="preview"
-            className='w-[300px] h-auto rounded my-2 border'
-          />
-        )}
-
-        <textarea
-          onChange={(e) => setContent(e.target.value)}
-          className='w-[300px] block bg-gray-200 border py-2 px-3 rounded text-lg my-2'
-          placeholder='Enter your content'
-        />
-
-        <button
-          type='submit'
-          className='bg-green-500 text-white border py-2 px-3 rounded text-lg my-2'
+        <Link
+          href="/"
+          className='block text-center mb-6 text-sm text-gray-600 hover:text-gray-900'
         >
-          Create Post
-        </button>
-      </form>
+          ⬅ กลับหน้าหลัก
+        </Link>
+
+        <form onSubmit={handleSubmit} className='space-y-4'>
+          <input
+            onChange={(e) => setTitle(e.target.value)}
+            type="text"
+            className='w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400'
+            placeholder='ชื่อสินค้า'
+          />
+
+          <input
+            onChange={handleImageChange}
+            type="file"
+            accept='image/*'
+            className='w-full bg-white border border-gray-300 py-2 px-4 rounded-lg cursor-pointer'
+          />
+
+          {preview && (
+            <img
+              src={preview}
+              alt="preview"
+              className='w-full h-auto object-cover rounded-lg border border-gray-300'
+            />
+          )}
+
+          <textarea
+            onChange={(e) => setContent(e.target.value) || ("")}
+            rows={4}
+            className='w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400'
+            placeholder='รายละเอียดของสินค้า'
+          />
+
+          <input
+            type="number"
+            onChange={(e) => setQuantity(e.target.value)}
+            className='w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400'
+            placeholder='จำนวนสินค้า'
+            min="1"
+          />
+
+          <button
+            type='submit'
+            className='w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200'
+          >
+            ➕ สร้างสินค้า
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

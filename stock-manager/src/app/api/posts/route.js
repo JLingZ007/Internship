@@ -3,12 +3,14 @@ import Post from "../../../../models/post";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
-    const { title, img, content } = await req.json();
-    console.log(title, img, content)
+    const { title, img, content, quantity } = await req.json();
+    console.log("👉 Received:", { title, img, content, quantity }); // เพิ่มบรรทัดนี้
     await connectMongoDB();
-    await Post.create({ title, img, content });
-    return NextResponse.json({ message: "Post created"}, { status: 201 })
+    const created = await Post.create({ title, img, content, quantity });
+    console.log("✅ Created:", created); // เพิ่มอีกบรรทัด
+    return NextResponse.json({ message: "Post created"}, { status: 201 });
 }
+
 
 export async function GET() {
     await connectMongoDB();

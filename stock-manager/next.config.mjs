@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    images: {
-      domains: ['th.bing.com'], // 👈 เพิ่ม domain ที่ใช้
-    },
-  };
+  images: {
+    domains: ["via.placeholder.com", "picsum.photos"],
+  },
+};
 
 export default nextConfig;
