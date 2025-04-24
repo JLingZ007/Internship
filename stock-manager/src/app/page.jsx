@@ -1,5 +1,4 @@
 "use client";
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -221,7 +220,7 @@ export default function Home() {
         <div className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200">
           <button
             onClick={() => setShowModal(false)}
-            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl transition"
+            className="absolute top-3 right-3 text-gray-400 hover:text-red-600 text-2xl transition cursor-pointer"
             aria-label="Close"
           >
             &times;
@@ -265,7 +264,7 @@ export default function Home() {
           <div className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200">
             <button
               onClick={() => setShowWithdrawModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl transition cursor-pointer"
+              className="absolute top-3 right-3 text-gray-400 hover:text-red-600 text-2xl transition cursor-pointer"
               aria-label="Close"
             >
               &times;
@@ -388,7 +387,7 @@ export default function Home() {
           <div className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200">
             <button
               onClick={() => setShowAddModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl transition cursor-pointer"
+              className="absolute top-3 right-3 text-gray-400 hover:text-red-600 text-2xl transition cursor-pointer"
               aria-label="Close"
             >
               &times;
@@ -502,7 +501,6 @@ export default function Home() {
           </div>
         </div>
       )}
-      <SpeedInsights />
     </main>
   );
 }
