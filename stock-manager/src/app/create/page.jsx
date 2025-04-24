@@ -33,7 +33,7 @@ function CreatePostPage() {
 
     const defaultImage = "https://via.placeholder.com/300";
 
-    if (!title || !code || quantity <= 0) {
+    if (!title || quantity <= 0) {
       Swal.fire({
         icon: 'warning',
         title: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบ!',

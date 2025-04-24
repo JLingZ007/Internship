@@ -76,7 +76,7 @@ export default function HistoryPage() {
             <tbody className="bg-white divide-y divide-gray-100">
               {filteredHistory.length > 0 ? (
                 filteredHistory.map((item) => (
-                  <tr key={item._id} className="hover:bg-gray-50 transition duration-200">
+                  <tr key={item._id} className="hover:bg-gray-200 transition duration-200">
                     <td className="px-6 py-4 text-gray-600 font-medium">{new Date(item.timestamp).toLocaleString("th-TH")}</td>
                     <td className="px-6 py-4">{renderAction(item.action)}</td>
                     <td className="px-6 py-4 text-gray-800">{item.productTitle}</td>
