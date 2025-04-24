@@ -65,6 +65,7 @@ function CreatePostPage() {
             action: "add",
             productTitle: title,
             amount: Number(quantity),
+            remaining: updatedQuantity,
             timestamp: new Date().toISOString()
           })
         });
@@ -146,7 +147,7 @@ function CreatePostPage() {
 
           <button
             type='submit'
-            className='w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200'
+            className='w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 cursor-pointer'
           >
             ➕ สร้างสินค้า
           </button>

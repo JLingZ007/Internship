@@ -5,7 +5,10 @@ import History from "../../../../models/History";
 export async function POST(req) {
   const body = await req.json();
   await connectMongoDB();
-  const history = await History.create(body);
+  const history = await History.create({
+    ...body,
+    remaining: body.remaining, // ✅ เพิ่มฟิลด์ remaining ลงใน document
+  });
   return NextResponse.json({ success: true, history });
 }
 

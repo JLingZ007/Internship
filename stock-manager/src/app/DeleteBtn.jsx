@@ -60,7 +60,7 @@ function DeleteBtn({ id, title }) {
   return (
     <button 
       onClick={handleDelete} 
-      className='bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600 text-sm transition'
+      className='bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600 text-sm transition cursor-pointer'
     >
       ลบ
     </button>

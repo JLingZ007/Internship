@@ -99,7 +99,7 @@ export default function Home() {
   return (
     <main className="container mx-auto px-4">
       <h1 className="text-3xl font-extrabold text-gray-800 text-center mt-8 mb-8 flex items-center justify-center gap-2">
-        <PackageMinus className="w-7 h-7 text-green-600 " /> ระบบจัดการสต็อกสินค้า
+        <PackageMinus className="w-7 h-7 text-green-600 " /> รายการสินค้าในคลัง
       </h1>
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -147,7 +147,7 @@ export default function Home() {
             </thead>
             <tbody>
               {filteredPosts.map((val, index) => (
-                <tr key={val._id} className={`${val.quantity < 10 ? "bg-yellow-50" : ""} hover:bg-gray-50`}>
+                <tr key={val._id} className={`${val.quantity === 0 ? "bg-red-100" : val.quantity < 10 ? "bg-yellow-50" : ""} `}>
                   <td className="p-3 border text-center">{index + 1}</td>
                   <td className="p-3 border">
                     <Image
@@ -159,11 +159,10 @@ export default function Home() {
                     />
                   </td>
                   <td className="p-3 border font-semibold">{val.title}</td>
-                  <td className={`p-3 border text-center font-bold ${val.quantity < 10 ? "text-red-500" : "text-green-600"}`}>
-                    {val.quantity} 
-                    {val.quantity < 10 && <span className="ml-1 text-xs">ชิ้น (ใกล้หมด)</span>}
+                  <td className={`p-3 border text-center font-bold ${val.quantity === 0 ? "text-red-700" : val.quantity < 10 ? "text-red-500" : "text-green-600"}`}>
+                    {val.quantity} {val.quantity === 0 ? <span className="ml-1 text-xs">(ของหมด)</span> : val.quantity < 10 ? <span className="ml-1 text-xs">(ใกล้หมด)</span> : null}
                   </td>
-                  <td className="p-3 border text-gray-600">{val.content?.slice(0, 40)}...</td>
+                  <td className="p-3 border text-gray-600">{val.content?.slice(0, 40)}</td>
                   <td className="p-3 border text-sm text-gray-500">{formatDate(val.updatedAt)}</td>
                   <td className="p-3 border">
                     <div className="flex flex-wrap gap-2">
@@ -172,7 +171,7 @@ export default function Home() {
                           setSelectedProduct(val);
                           setShowModal(true);
                         }}
-                        className="bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm flex items-center gap-1"
+                        className="bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm flex items-center gap-1 cursor-pointer"
                       >
                         <Eye className="w-4 h-4" /> ดู
                       </button>
@@ -182,29 +181,28 @@ export default function Home() {
                           setWithdrawAmount(1);
                           setShowWithdrawModal(true);
                         }}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded text-sm flex items-center gap-1"
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded text-sm flex items-center gap-1 cursor-pointer"
+                        disabled={val.quantity === 0}
                       >
                         <PackageMinus className="w-4 h-4" /> เบิก
                       </button>
-
                       <button
                         onClick={() => {
                           setAddProduct(val);
                           setAddAmount(1);
                           setShowAddModal(true);
                         }}
-                        className="bg-purple-500 hover:bg-purple-600 text-white py-1 px-3 rounded text-sm flex items-center gap-1"
+                        className="bg-purple-500 hover:bg-purple-600 text-white py-1 px-3 rounded text-sm flex items-center gap-1 cursor-pointer"
                       >
                         <Plus className="w-4 h-4" /> เพิ่ม
                       </button>
-
                       <Link
                         href={`/edit/${val._id}`}
                         className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded text-sm flex items-center gap-1"
                       >
                         <Edit className="w-4 h-4" /> แก้ไข
                       </Link>
-                      <DeleteBtn id={val._id} title={val.title} quantity={val.quantity}icon={<Trash2 className="w-4 h-4" />} />
+                      <DeleteBtn id={val._id} title={val.title} quantity={val.quantity} icon={<Trash2 className="w-4 h-4" />} />
                     </div>
                   </td>
                 </tr>
@@ -217,6 +215,50 @@ export default function Home() {
           </p>
         )}
       </div>
+      
+      {showModal && selectedProduct && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200">
+          <button
+            onClick={() => setShowModal(false)}
+            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl transition"
+            aria-label="Close"
+          >
+            &times;
+          </button>
+      
+          <h3 className="text-2xl font-bold text-center mb-4 text-gray-800">{selectedProduct.title}</h3>
+      
+          <div className="flex justify-center mb-4">
+            <Image
+              src={selectedProduct.img || "/default-image.jpg"}
+              alt={selectedProduct.title}
+              width={280}
+              height={280}
+              className="rounded-lg shadow-md object-cover"
+            />
+          </div>
+      
+          <div className="space-y-2 text-gray-700">
+            <p>
+              <strong>จำนวนคงเหลือ:</strong>{" "}
+              <span className={selectedProduct.quantity < 10 ? "text-red-500 font-semibold" : "text-green-600 font-semibold"}>
+                {selectedProduct.quantity}
+              </span>
+            </p>
+      
+            <p>
+              <strong>รายละเอียด:</strong> {selectedProduct.content}
+            </p>
+      
+            <p className="text-sm text-gray-400 pt-2 border-t mt-3">
+              <strong>อัปเดตล่าสุด:</strong> {formatDate(selectedProduct.updatedAt)}
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      )}
 
       {showWithdrawModal && withdrawProduct && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
@@ -302,6 +344,7 @@ export default function Home() {
                           productId: withdrawProduct._id,
                           productTitle: withdrawProduct.title,
                           amount: withdrawAmount,
+                          remaining: updatedQuantity,
                           timestamp: new Date().toISOString(),
                         }),
                       });
@@ -421,6 +464,7 @@ export default function Home() {
                           productId: addProduct._id,
                           productTitle: addProduct.title,
                           amount: addAmount,
+                          remaining: updatedQuantity,
                           timestamp: new Date().toISOString(),
                         }),
                       });

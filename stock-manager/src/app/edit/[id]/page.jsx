@@ -6,17 +6,16 @@ import { useParams, useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 
 function EditPostPage() {
-  const { id } = useParams();
+  const params = useParams();
   const router = useRouter();
+  const id = params?.id;
 
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
-  const [newQuantity, setNewQuantity] = useState(0);
-  const [newImg, setNewImg] = useState(""); // ภาพจาก database
-  const [preview, setPreview] = useState(null); // ภาพ preview ใหม่
-  const [loading, setLoading] = useState(true); // สำหรับแสดงสถานะโหลด
+  const [newImg, setNewImg] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // ดึงข้อมูลจาก post เดิม
   const getPostById = async (id) => {
     try {
       const res = await fetch(`/api/posts/${id}`, {
@@ -31,7 +30,6 @@ function EditPostPage() {
       const data = await res.json();
       setNewTitle(data.post.title || "");
       setNewContent(data.post.content || "");
-      setNewQuantity(data.post.quantity || 0);
       setNewImg(data.post.img || "");
       setPreview(data.post.img || null);
     } catch (error) {
@@ -51,29 +49,26 @@ function EditPostPage() {
     }
   }, [id]);
 
-  // จัดการการอัพโหลดรูปภาพ
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setNewImg(reader.result); // set image ที่จะส่งไป backend
-      setPreview(reader.result); // ใช้แสดง preview
+      setNewImg(reader.result);
+      setPreview(reader.result);
     };
     reader.readAsDataURL(file);
   };
 
-  // อัปเดตข้อมูล
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!newTitle || !newContent || !Number.isInteger(Number(newQuantity)) || newQuantity <= 0) {
+    if (!newTitle || !newContent) {
       Swal.fire({
         icon: "warning",
         title: "กรุณากรอกข้อมูลให้ครบถ้วน",
-        text: "ชื่อ, รายละเอียด, และจำนวนสินค้าต้องถูกต้องและมากกว่า 0",
+        text: "ชื่อและรายละเอียดสินค้าต้องไม่ว่าง",
       });
       return;
     }
@@ -86,9 +81,9 @@ function EditPostPage() {
         },
         body: JSON.stringify({
           newTitle,
-          newImg: newImg || "https://picsum.photos/300", // Fallback image
+          newImg: newImg || "https://picsum.photos/300",
           newContent,
-          newQuantity: Number(newQuantity),
+          newQuantity: 1,
         }),
       });
 
@@ -117,7 +112,11 @@ function EditPostPage() {
   };
 
   if (loading) {
-    return <div className="text-center mt-10">กำลังโหลด...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   return (
@@ -153,7 +152,7 @@ function EditPostPage() {
               src={preview || newImg}
               alt="Preview"
               className="w-full h-auto object-cover rounded-lg border border-gray-300"
-              onError={(e) => (e.target.src = "https://picsum.photos/300")} // Fallback ถ้ารูปเสีย
+              onError={(e) => (e.target.src = "https://picsum.photos/300")}
             />
           )}
 
@@ -163,21 +162,6 @@ function EditPostPage() {
             rows={4}
             className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg"
             placeholder="รายละเอียดสินค้า"
-          />
-
-          <input
-            type="number"
-            value={newQuantity}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === "" || /^[0-9]+$/.test(value)) {
-                setNewQuantity(Number(value) || 0);
-              }
-            }}
-            className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg"
-            placeholder="จำนวนสินค้า"
-            min="1"
-            step="1"
           />
 
           <button
