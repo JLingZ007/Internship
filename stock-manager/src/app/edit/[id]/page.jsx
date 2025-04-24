@@ -95,7 +95,7 @@ function EditPostPage() {
       if (res.ok) {
         Swal.fire({
           icon: "success",
-          title: "แก้eggสำเร็จ",
+          title: "แก้ไขสำเร็จ",
           showConfirmButton: false,
           timer: 1000,
         });

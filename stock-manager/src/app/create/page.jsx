@@ -3,14 +3,14 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Swal from 'sweetalert2' 
+import Swal from 'sweetalert2'
 
 function CreatePostPage() {
   const [title, setTitle] = useState("");
   const [img, setImg] = useState("");
   const [preview, setPreview] = useState(null);
   const [content, setContent] = useState("");
-  const [quantity, setQuantity] = useState("");  // ฟิลด์จำนวนสินค้า
+  const [quantity, setQuantity] = useState("");
 
   const router = useRouter();
 
@@ -28,9 +28,9 @@ function CreatePostPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    const defaultImage = "https://via.placeholder.com/300"; // <== default image
-  
+
+    const defaultImage = "https://via.placeholder.com/300";
+
     if (!title || !content || quantity <= 0) {
       Swal.fire({
         icon: 'warning',
@@ -39,9 +39,9 @@ function CreatePostPage() {
       });
       return;
     }
-  
-    const imageToUpload = img || defaultImage; // <== ถ้าไม่เลือกภาพ จะใช้ภาพ default
-  
+
+    const imageToUpload = img || defaultImage;
+
     try {
       const res = await fetch("/api/posts", {
         method: "POST",
@@ -49,26 +49,37 @@ function CreatePostPage() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            title,
-            img: imageToUpload,
-            content,
-            quantity: Number(quantity) // ✅ แปลงให้เป็นเลขก่อน
-          })
-          
+          title,
+          img: imageToUpload,
+          content,
+          quantity: Number(quantity)
+        })
       });
-  
+
       if (res.ok) {
+        // ✅ เพิ่มการบันทึก log
+        await fetch("/api/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "add",
+            productTitle: title,
+            amount: Number(quantity),
+            timestamp: new Date().toISOString()
+          })
+        });
+
         Swal.fire({
           icon: 'success',
           title: 'เพิ่มสินค้าสำเร็จ!',
           showConfirmButton: false,
           timer: 800
         });
-  
+
         setTimeout(() => {
-          router.push("/");  // เปลี่ยนไปหน้าหลัก
+          router.push("/");
         }, 900);
-  
+
       } else {
         throw new Error("เกิดข้อผิดพลาดในการสร้าง");
       }
@@ -82,7 +93,6 @@ function CreatePostPage() {
       });
     }
   };
-  
 
   return (
     <div className='min-h-screen bg-gray-100 py-10 px-4'>

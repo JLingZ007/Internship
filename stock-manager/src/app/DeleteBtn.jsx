@@ -3,7 +3,7 @@
 import React from 'react'
 import Swal from 'sweetalert2'
 
-function DeleteBtn({ id }) {
+function DeleteBtn({ id, title }) {
 
   const handleDelete = async () => {
     const result = await Swal.fire({
@@ -24,6 +24,19 @@ function DeleteBtn({ id }) {
         });
 
         if (res.ok) {
+          // ✅ บันทึกประวัติการลบสินค้า
+          await fetch("/api/history", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              productId: id,
+              productTitle: title,
+              timestamp: new Date().toISOString()
+            })
+          });
+
           Swal.fire({
             icon: 'success',
             title: 'ลบข้อมูลเรียบร้อยแล้ว',

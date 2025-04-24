@@ -1,16 +1,28 @@
 import { NextResponse } from "next/server";
 import { connectMongoDB } from "../../../../lib/mongodb";
-import History from "../../../../models/History"; // ✅ ถูกต้อง (H ใหญ่)
+import History from "../../../../models/History";
 
 export async function POST(req) {
-  const { action, productId, productName, quantityChanged, note } = await req.json();
+  const body = await req.json();
   await connectMongoDB();
-  await History.create({ action, productId, productName, quantityChanged, note });
-  return NextResponse.json({ message: "History logged" }, { status: 201 });
+  const history = await History.create(body);
+  return NextResponse.json({ success: true, history });
 }
 
 export async function GET() {
   await connectMongoDB();
-  const logs = await History.find().sort({ date: -1 });
-  return NextResponse.json({ logs });
+  const history = await History.find().sort({ timestamp: -1 });
+  return NextResponse.json({ history });
+}
+
+export async function DELETE(req) {
+  const body = await req.json();
+  await connectMongoDB();
+  const history = await History.create({
+    action: "delete",
+    productId: body.productId,
+    productTitle: body.productTitle,
+    timestamp: new Date().toISOString(),
+  });
+  return NextResponse.json({ success: true, history });
 }
