@@ -265,7 +265,7 @@ export default function Home() {
           <div className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200">
             <button
               onClick={() => setShowWithdrawModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl transition"
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl transition cursor-pointer"
               aria-label="Close"
             >
               &times;
@@ -374,7 +374,7 @@ export default function Home() {
                     });
                   }
                 }}
-                className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
+                className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 cursor-pointer"
               >
                 ยืนยันการเบิก
               </button>
@@ -388,7 +388,7 @@ export default function Home() {
           <div className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200">
             <button
               onClick={() => setShowAddModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl transition"
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl transition cursor-pointer"
               aria-label="Close"
             >
               &times;
@@ -494,7 +494,7 @@ export default function Home() {
                     });
                   }
                 }}
-                className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
+                className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 cursor-pointer"
               >
                 ยืนยันการเพิ่มจำนวน
               </button>

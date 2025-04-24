@@ -25,7 +25,6 @@ export async function PUT(req, context) {
 
   if (
     !newTitle ||
-    !newContent ||
     !Number.isInteger(newQuantity) || newQuantity < 0 // ✅ ยอมให้เป็น 0 ได้
   ) {
     return NextResponse.json(

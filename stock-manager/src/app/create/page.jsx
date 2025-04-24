@@ -1,11 +1,13 @@
-"use client"
+"use client";
 
-import React, { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import Swal from 'sweetalert2'
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
+import { ImageIcon } from 'lucide-react';
 
 function CreatePostPage() {
+  const [code, setCode] = useState("");
   const [title, setTitle] = useState("");
   const [img, setImg] = useState("");
   const [preview, setPreview] = useState(null);
@@ -31,10 +33,10 @@ function CreatePostPage() {
 
     const defaultImage = "https://via.placeholder.com/300";
 
-    if (!title || !content || quantity <= 0) {
+    if (!title || !code || quantity <= 0) {
       Swal.fire({
         icon: 'warning',
-        title: 'กรุณากรอกข้อมูลให้ครบถ้วน!',
+        title: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบ!',
         confirmButtonText: 'ตกลง',
       });
       return;
@@ -45,19 +47,17 @@ function CreatePostPage() {
     try {
       const res = await fetch("/api/posts", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          code,
           title,
           img: imageToUpload,
           content,
-          quantity: Number(quantity)
-        })
+          quantity: Number(quantity),
+        }),
       });
 
       if (res.ok) {
-        // ✅ เพิ่มการบันทึก log
         await fetch("/api/history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -65,91 +65,99 @@ function CreatePostPage() {
             action: "add",
             productTitle: title,
             amount: Number(quantity),
-            remaining: updatedQuantity,
-            timestamp: new Date().toISOString()
-          })
+            remaining: Number(quantity),
+            timestamp: new Date().toISOString(),
+          }),
         });
 
         Swal.fire({
           icon: 'success',
           title: 'เพิ่มสินค้าสำเร็จ!',
           showConfirmButton: false,
-          timer: 800
+          timer: 800,
         });
 
-        setTimeout(() => {
-          router.push("/");
-        }, 900);
-
+        setTimeout(() => router.push("/"), 900);
       } else {
-        throw new Error("เกิดข้อผิดพลาดในการสร้าง");
+        throw new Error("เกิดข้อผิดพลาด");
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
         text: 'ไม่สามารถเพิ่มสินค้าได้',
-        confirmButtonText: 'ลองอีกครั้ง'
       });
     }
   };
 
   return (
-    <div className='min-h-screen bg-gray-100 py-10 px-4'>
-      <div className='max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg'>
-        <h3 className='text-3xl font-extrabold text-center text-gray-800 mb-4'>เพิ่มสินค้าใหม่</h3>
+    <div className="min-h-screen bg-gray-100 py-10 px-4">
+      <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6">
+        <div className="flex justify-between items-center mb-4">
+          <Link href="/" className="text-gray-600 hover:underline">&larr; กลับหน้าหลัก</Link>
+          <span className="text-sm text-green-600 font-medium">สินค้าใหม่</span>
+        </div>
 
-        <Link
-          href="/"
-          className='block text-center mb-6 text-sm text-gray-600 hover:text-gray-900'
-        >
-          ⬅ กลับหน้าหลัก
-        </Link>
+        <h2 className="text-3xl font-bold text-center text-gray-800">เพิ่มสินค้าใหม่</h2>
 
-        <form onSubmit={handleSubmit} className='space-y-4'>
-          <input
-            onChange={(e) => setTitle(e.target.value)}
-            type="text"
-            className='w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400'
-            placeholder='ชื่อสินค้า'
-          />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">ชื่อสินค้า *</label>
+              <input
+                onChange={(e) => setTitle(e.target.value)}
+                type="text"
+                className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                placeholder="กรอกชื่อสินค้า"
+              />
+            </div>
+          </div>
 
-          <input
-            onChange={handleImageChange}
-            type="file"
-            accept='image/*'
-            className='w-full bg-white border border-gray-300 py-2 px-4 rounded-lg cursor-pointer'
-          />
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">จำนวนสินค้า *</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                onChange={(e) => setQuantity(e.target.value)}
+                className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                placeholder="จำนวน"
+                min="1"
+              />
+              <span className="text-sm text-gray-600">ชิ้น</span>
+            </div>
+          </div>
 
-          {preview && (
-            <img
-              src={preview}
-              alt="preview"
-              className='w-full h-auto object-cover rounded-lg border border-gray-300'
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">รูปภาพสินค้า</label>
+            <label className="flex flex-col items-center justify-center w-full h-48 px-4 transition bg-white border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-green-400">
+              {preview ? (
+                <img src={preview} alt="preview" className="h-full object-contain" />
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  <ImageIcon className="w-10 h-10 text-gray-400" />
+                  <p className="text-gray-400 text-sm mt-2">คลิกเพื่อเลือกรูปภาพ หรือลากมาใส่ลงวาง</p>
+                </div>
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+            </label>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">รายละเอียดสินค้า</label>
+            <textarea
+              onChange={(e) => setContent(e.target.value)}
+              rows={4}
+              className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+              placeholder="กรอกรายละเอียดของสินค้า"
             />
-          )}
-
-          <textarea
-            onChange={(e) => setContent(e.target.value) || ("")}
-            rows={4}
-            className='w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400'
-            placeholder='รายละเอียดของสินค้า'
-          />
-
-          <input
-            type="number"
-            onChange={(e) => setQuantity(e.target.value)}
-            className='w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400'
-            placeholder='จำนวนสินค้า'
-            min="1"
-          />
+          </div>
 
           <button
-            type='submit'
-            className='w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 cursor-pointer'
+            type="submit"
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200 cursor-pointer"
           >
-            ➕ สร้างสินค้า
+            ➕ เพิ่มสินค้าใหม่
           </button>
         </form>
       </div>
