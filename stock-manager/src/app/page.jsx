@@ -139,7 +139,7 @@ export default function Home() {
                 <tr key={val._id} className={val.quantity === 0 ? "bg-red-100" : val.quantity < 10 ? "bg-yellow-50" : ""}>
                   <td className="p-3 border text-center">{index + 1}</td>
                   <td className="p-3 border">
-                    <Image src={val.img || "/default-image.jpg"} alt={val.title} width={60} height={60} className="rounded-md shadow-md" />
+                    <Image src={val.img || "/image.svg"} alt={val.title} width={60} height={60} className="rounded-md shadow-md" />
                   </td>
                   <td className="p-3 border font-semibold">{val.title}</td>
                   <td className={`p-3 border text-center font-bold ${val.quantity === 0 ? "text-red-700" : val.quantity < 10 ? "text-red-500" : "text-green-600"}`}>

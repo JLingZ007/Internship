@@ -42,7 +42,7 @@ function CreatePostPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { code, title, img, content, quantity } = formData;
-    const defaultImage = "https://via.placeholder.com/300";
+    const defaultImage = "/image.svg";
 
     if (!title || quantity <= 0) {
       const Swal = (await import("sweetalert2")).default;

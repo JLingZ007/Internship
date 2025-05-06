@@ -93,7 +93,7 @@ export default function AddStockModal({
 
         <div className="flex justify-center mb-4">
           <Image
-            src={addProduct.img || "/default-image.jpg"}
+            src={addProduct.img || "/image.svg"}
             alt={addProduct.title}
             width={280}
             height={280}

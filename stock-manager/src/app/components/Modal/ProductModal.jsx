@@ -34,7 +34,7 @@ export default function ProductModal({ selectedProduct, onClose }) {
 
         <div className="flex justify-center mb-4">
           <Image
-            src={selectedProduct.img || "/default-image.jpg"}
+            src={selectedProduct.img || "/image.svg"}
             alt={selectedProduct.title}
             width={280}
             height={280}

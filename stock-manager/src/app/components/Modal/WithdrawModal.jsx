@@ -93,7 +93,7 @@ export default function WithdrawModal({
 
         <div className="flex justify-center mb-4">
           <Image
-            src={withdrawProduct.img || "/default-image.jpg"}
+            src={withdrawProduct.img || "/image.svg"}
             alt={withdrawProduct.title}
             width={280}
             height={280}
