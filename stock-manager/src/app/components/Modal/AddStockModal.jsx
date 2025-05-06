@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Swal from "sweetalert2";
 
@@ -10,6 +11,8 @@ export default function AddStockModal({
   onClose,
   onAddSuccess,
 }) {
+  const [isAdding, setIsAdding] = useState(false);
+
   if (!addProduct) return null;
 
   const handleAddStock = async () => {
@@ -21,6 +24,8 @@ export default function AddStockModal({
       });
       return;
     }
+
+    setIsAdding(true);
 
     try {
       const updatedQuantity = addProduct.quantity + addAmount;
@@ -73,6 +78,8 @@ export default function AddStockModal({
         title: "เกิดข้อผิดพลาด",
         text: "ไม่สามารถติดต่อเซิร์ฟเวอร์ได้",
       });
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -122,14 +129,33 @@ export default function AddStockModal({
               value={addAmount}
               onChange={(e) => setAddAmount(Number(e.target.value))}
               className="w-full border border-gray-300 rounded px-4 py-2"
+              disabled={isAdding}
             />
           </div>
 
           <button
             onClick={handleAddStock}
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition cursor-pointer"
+            disabled={isAdding}
+            className={`w-full flex items-center justify-center gap-2 
+              ${isAdding ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"} 
+              text-white py-2 px-4 rounded-lg transition`}
           >
-            ✅ ยืนยันการเพิ่มจำนวน
+            {isAdding && (
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8z"
+                />
+              </svg>
+            )}
+            {isAdding ? "กำลังเพิ่ม..." : "✅ ยืนยันการเพิ่มจำนวน"}
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Swal from "sweetalert2";
 
@@ -10,6 +11,8 @@ export default function WithdrawModal({
   onClose,
   onWithdrawSuccess,
 }) {
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+
   if (!withdrawProduct) return null;
 
   const handleWithdraw = async () => {
@@ -21,6 +24,8 @@ export default function WithdrawModal({
       });
       return;
     }
+
+    setIsWithdrawing(true);
 
     try {
       const updatedQuantity = withdrawProduct.quantity - withdrawAmount;
@@ -57,8 +62,8 @@ export default function WithdrawModal({
           timer: 1500,
         });
 
-        onWithdrawSuccess(); // Reload ข้อมูลใหม่
-        onClose(); // ปิด Modal
+        onWithdrawSuccess();
+        onClose();
       } else {
         Swal.fire({
           icon: "error",
@@ -73,6 +78,8 @@ export default function WithdrawModal({
         title: "เกิดข้อผิดพลาด",
         text: "ไม่สามารถติดต่อเซิร์ฟเวอร์ได้",
       });
+    } finally {
+      setIsWithdrawing(false);
     }
   };
 
@@ -125,14 +132,33 @@ export default function WithdrawModal({
               value={withdrawAmount}
               onChange={(e) => setWithdrawAmount(Number(e.target.value))}
               className="w-full border border-gray-300 rounded px-4 py-2"
+              disabled={isWithdrawing}
             />
           </div>
 
           <button
             onClick={handleWithdraw}
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition cursor-pointer"
+            disabled={isWithdrawing}
+            className={`w-full flex items-center justify-center gap-2 
+              ${isWithdrawing ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"} 
+              text-white py-2 px-4 rounded-lg transition`}
           >
-            ✅ ยืนยันการเบิก
+            {isWithdrawing && (
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8z"
+                />
+              </svg>
+            )}
+            {isWithdrawing ? "กำลังเบิก..." : "✅ ยืนยันการเบิก"}
           </button>
         </div>
       </div>
