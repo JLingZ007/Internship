@@ -3,12 +3,10 @@ import Post from "../../../../../models/post";
 import { NextResponse } from "next/server";
 
 export async function GET(req, context) {
-  // รอให้ params ถูก resolve ก่อนนำมาใช้
-  const params = await context.params;
-  const id = params.id;
+  const { id } = context.params;
   
   await connectMongoDB();
-  const post = await Post.findOne({ _id: id });
+  const post = await Post.findById(id); // ใช้ findById ตรงไปเลย
 
   if (!post) {
     return NextResponse.json({ message: "ไม่พบสินค้า" }, { status: 404 });
@@ -18,15 +16,10 @@ export async function GET(req, context) {
 }
 
 export async function PUT(req, context) {
-  const params = await context.params;
-  const id = params.id;
-
+  const { id } = await context.params;
   const { newTitle, newImg, newContent, newQuantity } = await req.json();
 
-  if (
-    !newTitle ||
-    !Number.isInteger(newQuantity) || newQuantity < 0 // ✅ ยอมให้เป็น 0 ได้
-  ) {
+  if (!newTitle || !Number.isInteger(newQuantity) || newQuantity < 0) {
     return NextResponse.json(
       { message: "กรุณากรอกข้อมูลให้ครบถ้วนและจำนวนสินค้าต้องไม่ติดลบ" },
       { status: 400 }
@@ -50,15 +43,10 @@ export async function PUT(req, context) {
       return NextResponse.json({ message: "ไม่พบสินค้า" }, { status: 404 });
     }
 
-    return NextResponse.json(
-      { message: "อัปเดตสินค้าสำเร็จ" },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "อัปเดตสินค้าสำเร็จ" }, { status: 200 });
   } catch (error) {
     console.error("PUT error:", error);
-    return NextResponse.json(
-      { message: "เกิดข้อผิดพลาดในการอัปเดต" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "เกิดข้อผิดพลาดในการอัปเดต" }, { status: 500 });
   }
 }
+
