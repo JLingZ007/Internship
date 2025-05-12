@@ -6,10 +6,17 @@ const postSchema = new Schema(
     title: { type: String, required: true },
     img: String,
     content: String,
-    quantity: { type: Number, required: true },  // ✅ กำหนด type และ required
+    quantity: { type: Number, required: true },
+
+    // ✅ เพิ่ม field category แบบอ้างอิง
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 

@@ -21,7 +21,7 @@ export async function connectMongoDB() {
 
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
-      dbName: "cluster0", // เปลี่ยนเป็นชื่อ database ของคุณ
+      dbName: "stock", // เปลี่ยนเป็นชื่อ database ของคุณ
     });
     isConnected = true;
     console.log("✅ MongoDB connected");

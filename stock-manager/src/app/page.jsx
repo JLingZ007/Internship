@@ -14,6 +14,8 @@ const DeleteBtn = dynamic(() => import("./components/DeleteBtn"), { ssr: false }
 const ProductModal = dynamic(() => import("./components/Modal/ProductModal"));
 const WithdrawModal = dynamic(() => import("./components/Modal/WithdrawModal"));
 const AddStockModal = dynamic(() => import("./components/Modal/AddStockModal"));
+const CategoryModal = dynamic(() => import("./components/Modal/CategoryModal"), { ssr: false });
+
 
 const LIMIT = 20; // จำนวนสินค้าที่โหลดต่อรอบ
 
@@ -36,41 +38,68 @@ export default function Home() {
   const [addAmount, setAddAmount] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
 
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+
+  // ด้านบนสุดของ component
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const res = await fetch("/api/categories");
+      const data = await res.json();
+      setCategories(data.categories || []);
+    };
+    fetchCategories();
+  }, []);
+
+
+
   const observerRef = useRef(null);
   const tableContainerRef = useRef(null);
 
-  const fetchPosts = useCallback(async () => {
-    if (!hasMore || isLoading) return;
-  
-    setIsLoading(true);
-    try {
-      const lastItem = postData[postData.length - 1];
-      const lastUpdatedAt = lastItem?.updatedAt;
-  
-      const url = new URL("/api/posts", window.location.origin);
-      url.searchParams.set("limit", LIMIT);
-      if (lastUpdatedAt) {
-        url.searchParams.set("lastUpdatedAt", lastUpdatedAt);
-      }
-  
-      const res = await fetch(url.toString(), { cache: "no-store" });
-      const data = await res.json();
-  
-      if (!Array.isArray(data.posts) || data.posts.length < LIMIT) setHasMore(false);
-  
-      setPostData(prev => {
-        const existingIds = new Set(prev.map(p => p._id));
-        const uniqueNew = data.posts.filter(p => !existingIds.has(p._id));
-        return [...prev, ...uniqueNew];
-      });
-    } catch (err) {
-      console.error("Error loading posts:", err);
-      setHasMore(false);
-    } finally {
-      setIsLoading(false);
+const fetchPosts = useCallback(async () => {
+  if (!hasMore || isLoading) return;
+
+  setIsLoading(true);
+  try {
+    const lastItem = postData[postData.length - 1];
+    const lastUpdatedAt = lastItem?.updatedAt;
+
+    const url = new URL("/api/posts", window.location.origin);
+    url.searchParams.set("limit", LIMIT);
+
+    // เอาเงื่อนไข updatedAt ไว้ตรงนี้
+    if (lastUpdatedAt) {
+      url.searchParams.set("lastUpdatedAt", lastUpdatedAt);
     }
-  }, [postData, hasMore, isLoading]);
-  
+    // กรองตาม category ทุกครั้ง
+    if (selectedCategory) {
+      url.searchParams.set("category", selectedCategory);
+    }
+
+    const res = await fetch(url.toString(), { cache: "no-store" });
+    const data = await res.json();
+
+    // ถ้าของไม่พอรอบเดียว ก็ตั้ง hasMore=false
+    if (!Array.isArray(data.posts) || data.posts.length < LIMIT) {
+      setHasMore(false);
+    }
+
+    setPostData(prev => {
+      const existingIds = new Set(prev.map(p => p._id));
+      const uniqueNew = data.posts.filter(p => !existingIds.has(p._id));
+      return [...prev, ...uniqueNew];
+    });
+  } catch (err) {
+    console.error("Error loading posts:", err);
+    setHasMore(false);
+  } finally {
+    setIsLoading(false);
+  }
+}, [postData, hasMore, isLoading, selectedCategory]);
+
+
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
@@ -127,12 +156,14 @@ export default function Home() {
     }).format(new Date(dateString));
   };
 
+
+
   return (
     <main className="container mx-auto px-2 sm:px-4 pb-6 sm:pb-10">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white mb-8 pt-2 pb-3 shadow-sm px-1 sm:px-2 rounded-lg">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-center text-gray-800 mt-2 mb-3 sm:my-4 flex items-center justify-center gap-2">
-          <PackageMinus className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" /> 
+          <PackageMinus className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
           <span className="bg-gradient-to-r from-green-600 to-teal-500 bg-clip-text text-transparent">
             ระบบจัดการสินค้าในคลัง
           </span>
@@ -144,6 +175,12 @@ export default function Home() {
             <Link href="/create" className="bg-green-600 hover:bg-green-700 text-white py-1 sm:py-2 px-3 sm:px-4 rounded flex items-center gap-1 sm:gap-2 transition-all shadow-sm text-sm sm:text-base">
               <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" /> เพิ่มสินค้า
             </Link>
+            <button
+              onClick={() => setShowCategoryModal(true)}
+              className="bg-gray-600 hover:bg-gray-700 text-white py-1 sm:py-2 px-3 sm:px-4 rounded flex items-center gap-1 sm:gap-2 transition-all shadow-sm text-sm sm:text-base cursor-pointer"
+            >
+              📂 หมวดหมู่
+            </button>
             <Link href="/history" className="bg-blue-600 hover:bg-blue-700 text-white py-1 sm:py-2 px-3 sm:px-4 rounded flex items-center gap-1 sm:gap-2 transition-all shadow-sm text-sm sm:text-base">
               <Clock className="w-4 h-4 sm:w-5 sm:h-5" /> ประวัติ
             </Link>
@@ -159,12 +196,32 @@ export default function Home() {
               className="w-full bg-white border border-gray-300 py-1 sm:py-2 pl-8 sm:pl-10 pr-3 sm:pr-4 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent text-sm"
             />
           </div>
+          <div className="w-full sm:w-auto">
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setPage(1);
+                setPostData([]);
+                setHasMore(true);
+              }}
+              className="bg-white border border-gray-300 px-3 py-2 rounded-md shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            >
+              <option value="">📂 ทุกหมวดหมู่</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
         </div>
       </div>
 
       {/* Table Container with Fixed Height */}
-      <div 
-        ref={tableContainerRef} 
+      <div
+        ref={tableContainerRef}
         className="overflow-auto bg-white rounded-lg shadow-lg border border-gray-200"
         style={{ maxHeight: "calc(100vh - 230px)", minHeight: "400px" }}
       >
@@ -177,11 +234,11 @@ export default function Home() {
               <th className="p-3 border-b border-r border-gray-200 w-24 cursor-pointer" onClick={handleSort}>
                 <div className="flex items-center justify-between">
                   จำนวน
-                  {sortOrder === "asc" ? 
-                    <ArrowUp className="w-4 h-4" /> : 
-                    sortOrder === "desc" ? 
-                    <ArrowDown className="w-4 h-4" /> : 
-                    <ArrowUpDown className="w-4 h-4" />
+                  {sortOrder === "asc" ?
+                    <ArrowUp className="w-4 h-4" /> :
+                    sortOrder === "desc" ?
+                      <ArrowDown className="w-4 h-4" /> :
+                      <ArrowUpDown className="w-4 h-4" />
                   }
                 </div>
               </th>
@@ -193,44 +250,42 @@ export default function Home() {
           <tbody>
             {filteredPosts.length > 0 ? (
               filteredPosts.map((val, index) => (
-                <tr 
-                  key={`${val._id}-${index}`} 
-                  className={`hover:bg-gray-50 ${
-                    val.quantity === 0 
-                    ? "bg-red-50" 
-                    : val.quantity < 10 
-                    ? "bg-yellow-50" 
-                    : ""
-                  } transition-colors`}
+                <tr
+                  key={`${val._id}-${index}`}
+                  className={`hover:bg-gray-50 ${val.quantity === 0
+                    ? "bg-red-50"
+                    : val.quantity < 10
+                      ? "bg-yellow-50"
+                      : ""
+                    } transition-colors`}
                 >
                   <td className="p-1 sm:p-2 border-b border-r border-gray-200 text-center">{index + 1}</td>
                   <td className="p-1 sm:p-2 border-b border-r border-gray-200">
                     <div className="flex justify-center">
-                      <Image 
-                        src={val.img || "/image.svg"} 
-                        alt={val.title} 
-                        width={50} 
-                        height={50} 
-                        className="rounded-md shadow-sm object-cover w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14" 
+                      <Image
+                        src={val.img || "/image.svg"}
+                        alt={val.title}
+                        width={50}
+                        height={50}
+                        className="rounded-md shadow-sm object-cover w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14"
                       />
                     </div>
                   </td>
                   <td className="p-1 sm:p-2 border-b border-r border-gray-200 font-semibold text-xs sm:text-sm truncate">
                     <span className="block truncate" title={val.title}>{val.title}</span>
                   </td>
-                  <td className={`p-1 sm:p-2 border-b border-r border-gray-200 text-center font-bold text-xs sm:text-sm ${
-                    val.quantity === 0 
-                    ? "text-red-700" 
-                    : val.quantity < 10 
-                    ? "text-orange-500" 
-                    : "text-green-600"
-                  }`}>
+                  <td className={`p-1 sm:p-2 border-b border-r border-gray-200 text-center font-bold text-xs sm:text-sm ${val.quantity === 0
+                    ? "text-red-700"
+                    : val.quantity < 10
+                      ? "text-orange-500"
+                      : "text-green-600"
+                    }`}>
                     {val.quantity} ชิ้น
-                    {val.quantity === 0 
-                      ? <div className="text-xs mt-1 bg-red-100 text-red-800 rounded-full px-1 py-0.5 text-center whitespace-nowrap">หมด</div> 
-                      : val.quantity < 10 
-                      ? <div className="text-xs mt-1 bg-yellow-100 text-yellow-800 rounded-full px-1 py-0.5 text-center whitespace-nowrap">ใกล้หมด</div> 
-                      : null}
+                    {val.quantity === 0
+                      ? <div className="text-xs mt-1 bg-red-100 text-red-800 rounded-full px-1 py-0.5 text-center whitespace-nowrap">หมด</div>
+                      : val.quantity < 10
+                        ? <div className="text-xs mt-1 bg-yellow-100 text-yellow-800 rounded-full px-1 py-0.5 text-center whitespace-nowrap">ใกล้หมด</div>
+                        : null}
                   </td>
                   {/* <td className="p-1 sm:p-2 border-b border-r border-gray-200 text-gray-600 text-xs sm:text-sm">
                     <div className="truncate" title={val.content}>
@@ -240,49 +295,48 @@ export default function Home() {
                   <td className="p-1 sm:p-2 border-b border-r border-gray-200 text-xs text-gray-500 whitespace-nowrap">{formatDate(val.updatedAt)}</td>
                   <td className="p-1 sm:p-2 border-b border-gray-200">
                     <div className="grid grid-cols-1 sm:grid-cols-5 gap-1 sm:gap-2 justify-items-center">
-                      <button 
-                        onClick={() => { setSelectedProduct(val); setShowModal(true); }} 
+                      <button
+                        onClick={() => { setSelectedProduct(val); setShowModal(true); }}
                         className="bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded text-xs sm:text-sm flex items-center gap-1 transition-colors w-full"
                         title="ดูรายละเอียด"
                       >
-                        <Eye className="w-3 h-3 sm:w-4 sm:h-4" /> 
+                        <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span className="sm:inline hidden">ดู</span>
                       </button>
-                      <button 
-                        onClick={() => { setWithdrawProduct(val); setWithdrawAmount(1); setShowWithdrawModal(true); }} 
-                        disabled={val.quantity === 0} 
-                        className={`${
-                          val.quantity === 0 
-                          ? "bg-gray-400 cursor-not-allowed" 
+                      <button
+                        onClick={() => { setWithdrawProduct(val); setWithdrawAmount(1); setShowWithdrawModal(true); }}
+                        disabled={val.quantity === 0}
+                        className={`${val.quantity === 0
+                          ? "bg-gray-400 cursor-not-allowed"
                           : "bg-yellow-500 hover:bg-yellow-600"
-                        } text-white py-1 px-2 rounded text-xs sm:text-sm flex items-center gap-1 transition-colors w-full`}
+                          } text-white py-1 px-2 rounded text-xs sm:text-sm flex items-center gap-1 transition-colors w-full`}
                         title="เบิกสินค้า"
                       >
-                        <PackageMinus className="w-3 h-3 sm:w-4 sm:h-4" /> 
+                        <PackageMinus className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span className="sm:inline hidden">เบิก</span>
                       </button>
-                      <button 
-                        onClick={() => { setAddProduct(val); setAddAmount(1); setShowAddModal(true); }} 
+                      <button
+                        onClick={() => { setAddProduct(val); setAddAmount(1); setShowAddModal(true); }}
                         className="bg-purple-500 hover:bg-purple-600 text-white py-1 px-2 rounded text-xs sm:text-sm flex items-center gap-1 transition-colors w-full"
                         title="เพิ่มสต็อก"
                       >
-                        <Plus className="w-3 h-3 sm:w-4 sm:h-4" /> 
+                        <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span className="sm:inline hidden">เพิ่ม</span>
                       </button>
-                      <Link 
-                        href={`/edit/${val._id}`} 
+                      <Link
+                        href={`/edit/${val._id}`}
                         className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded text-xs sm:text-sm flex items-center gap-1 transition-colors w-full justify-center"
                         title="แก้ไขข้อมูล"
                       >
-                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" /> 
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span className="sm:inline hidden">แก้ไข</span>
                       </Link>
                       <div className="w-full">
-                        <DeleteBtn 
-                          id={val._id} 
-                          title={val.title} 
-                          quantity={val.quantity} 
-                          icon={<Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />} 
+                        <DeleteBtn
+                          id={val._id}
+                          title={val.title}
+                          quantity={val.quantity}
+                          icon={<Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />}
                         />
                       </div>
                     </div>
@@ -318,17 +372,17 @@ export default function Home() {
       <div className="mt-2 sm:mt-4 bg-white p-2 sm:p-3 rounded-lg shadow">
         <div className="grid grid-cols-3 gap-1 sm:gap-4 text-center">
           <div className="text-xs sm:text-sm p-1 sm:p-2 bg-blue-50 rounded">
-            <span className="font-medium text-gray-600 block sm:inline">รายการทั้งหมด</span> 
+            <span className="font-medium text-gray-600 block sm:inline">รายการทั้งหมด</span>
             <span className="font-bold text-blue-600 block sm:inline sm:ml-1">{filteredPosts.length}</span>
           </div>
           <div className="text-xs sm:text-sm p-1 sm:p-2 bg-yellow-50 rounded">
-            <span className="font-medium text-gray-600 block sm:inline">สินค้าใกล้หมด</span> 
+            <span className="font-medium text-gray-600 block sm:inline">สินค้าใกล้หมด</span>
             <span className="font-bold text-orange-500 block sm:inline sm:ml-1">
               {filteredPosts.filter(p => p.quantity > 0 && p.quantity < 10).length}
             </span>
           </div>
           <div className="text-xs sm:text-sm p-1 sm:p-2 bg-red-50 rounded">
-            <span className="font-medium text-gray-600 block sm:inline">สินค้าหมด</span> 
+            <span className="font-medium text-gray-600 block sm:inline">สินค้าหมด</span>
             <span className="font-bold text-red-600 block sm:inline sm:ml-1">
               {filteredPosts.filter(p => p.quantity === 0).length}
             </span>
@@ -366,6 +420,13 @@ export default function Home() {
           }}
         />
       )}
+      {showCategoryModal && (
+        <CategoryModal
+          isOpen={showCategoryModal}
+          onClose={() => setShowCategoryModal(false)}
+        />
+      )}
+
     </main>
   );
 }

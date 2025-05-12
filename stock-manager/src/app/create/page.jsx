@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ImageIcon, Loader2 } from "lucide-react"; // ✅ import รูปไอคอนหมุนจาก lucide
+import { ImageIcon, Loader2 } from "lucide-react";
 
 function CreatePostPage() {
   const [formData, setFormData] = useState({
@@ -13,11 +13,25 @@ function CreatePostPage() {
     preview: null,
     content: "",
     quantity: "",
+    category: "",
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false); // ✅ เพิ่ม state สำหรับ Loader
-
+  const [categories, setCategories] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/categories");
+        const data = await res.json();
+        setCategories(data.categories || []);
+      } catch (err) {
+        console.error("Error loading categories:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,10 +55,10 @@ function CreatePostPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { code, title, img, content, quantity } = formData;
+    const { code, title, img, content, quantity, category } = formData;
     const defaultImage = "/image.svg";
 
-    if (!title || quantity <= 0) {
+    if (!title || quantity <= 0 || !category) {
       const Swal = (await import("sweetalert2")).default;
       Swal.fire({
         icon: "warning",
@@ -54,7 +68,7 @@ function CreatePostPage() {
     }
 
     try {
-      setIsSubmitting(true); // ✅ เริ่มหมุน Loader
+      setIsSubmitting(true);
 
       const res = await fetch("/api/posts", {
         method: "POST",
@@ -65,6 +79,7 @@ function CreatePostPage() {
           img: img || defaultImage,
           content,
           quantity: Number(quantity),
+          category, // ✅ เพิ่ม category
         }),
       });
 
@@ -91,7 +106,6 @@ function CreatePostPage() {
       });
 
       setTimeout(() => router.push("/"), 900);
-
     } catch (error) {
       console.error(error);
       const Swal = (await import("sweetalert2")).default;
@@ -101,7 +115,7 @@ function CreatePostPage() {
         text: "ไม่สามารถเพิ่มสินค้าได้",
       });
     } finally {
-      setIsSubmitting(false); // ✅ หยุดหมุน Loader
+      setIsSubmitting(false);
     }
   };
 
@@ -123,10 +137,27 @@ function CreatePostPage() {
               name="title"
               onChange={handleChange}
               type="text"
-              className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg"
               placeholder="กรอกชื่อสินค้า"
-              disabled={isSubmitting} // ❗ระหว่าง submit ไม่ให้พิมพ์
+              disabled={isSubmitting}
             />
+          </div>
+
+          {/* หมวดหมู่สินค้า */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">หมวดหมู่ *</label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg"
+            >
+              <option value="">-- เลือกหมวดหมู่ --</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>{cat.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* จำนวนสินค้า */}
@@ -137,7 +168,7 @@ function CreatePostPage() {
                 name="quantity"
                 type="number"
                 onChange={handleChange}
-                className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg"
                 placeholder="จำนวน"
                 min="1"
                 disabled={isSubmitting}
@@ -175,7 +206,7 @@ function CreatePostPage() {
               name="content"
               onChange={handleChange}
               rows={4}
-              className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full bg-gray-100 border border-gray-300 py-2 px-4 rounded-lg"
               placeholder="กรอกรายละเอียดของสินค้า"
               disabled={isSubmitting}
             />
@@ -185,7 +216,7 @@ function CreatePostPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex justify-center items-center bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200"
+            className="w-full flex justify-center items-center bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg text-lg"
           >
             {isSubmitting ? (
               <>

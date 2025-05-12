@@ -2,11 +2,12 @@ import { connectMongoDB } from "../../../../../lib/mongodb";
 import Post from "../../../../../models/post";
 import { NextResponse } from "next/server";
 
-export async function GET(req, context) {
-  const { id } = context.params;
+// ✅ GET - ต้องรับ params แยกและ await
+export async function GET(req, { params }) {
+  const { id } = await params; // ✅ ต้อง await ตาม Next.js 15+
   
   await connectMongoDB();
-  const post = await Post.findById(id); // ใช้ findById ตรงไปเลย
+  const post = await Post.findById(id);
 
   if (!post) {
     return NextResponse.json({ message: "ไม่พบสินค้า" }, { status: 404 });
@@ -15,38 +16,44 @@ export async function GET(req, context) {
   return NextResponse.json({ post }, { status: 200 });
 }
 
-export async function PUT(req, context) {
-  const { id } = await context.params;
-  const { newTitle, newImg, newContent, newQuantity } = await req.json();
+// ✅ PUT - รับ params และ await เช่นเดียวกัน
+export async function PUT(req, { params }) {
+  const { id } = await params;
+  const {
+    newTitle,
+    newImg,
+    newContent,
+    newCategory,    // ✅ รับหมวดหมู่ใหม่
+  } = await req.json();
 
-  if (!newTitle || !Number.isInteger(newQuantity) || newQuantity < 0) {
+  // ตรวจสอบข้อมูล
+  if (!newTitle || !newCategory) {
     return NextResponse.json(
-      { message: "กรุณากรอกข้อมูลให้ครบถ้วนและจำนวนสินค้าต้องไม่ติดลบ" },
+      { message: "กรุณาระบุชื่อสินค้าและหมวดหมู่" },
       { status: 400 }
     );
   }
 
   try {
     await connectMongoDB();
-    const updatedPost = await Post.findByIdAndUpdate(
+    const updated = await Post.findByIdAndUpdate(
       id,
       {
         title: newTitle,
         img: newImg,
         content: newContent,
-        quantity: newQuantity,
+        category: newCategory,  // ✅ อัปเดต category
       },
       { new: true }
     );
 
-    if (!updatedPost) {
+    if (!updated) {
       return NextResponse.json({ message: "ไม่พบสินค้า" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "อัปเดตสินค้าสำเร็จ" }, { status: 200 });
-  } catch (error) {
-    console.error("PUT error:", error);
-    return NextResponse.json({ message: "เกิดข้อผิดพลาดในการอัปเดต" }, { status: 500 });
+    return NextResponse.json({ message: "อัปเดตสำเร็จ", post: updated }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ message: "เกิดข้อผิดพลาด", error: err }, { status: 500 });
   }
 }
-
