@@ -23,29 +23,34 @@ export async function PUT(req, { params }) {
     newTitle,
     newImg,
     newContent,
-    newQuantity,
-    newCategory,   // จะมีก็ต่อเมื่อมาจากหน้า edit เท่านั้น
+    newQuantity,     // จะมีเมื่อมาจาก Withdraw/AddStock
+    newCategory,     // จะมีเมื่อมาจาก EditPostPage
   } = await req.json();
 
-  // ตรวจสอบข้อมูลที่จำเป็น
-  if (!newTitle || !Number.isInteger(newQuantity) || newQuantity < 0) {
+  // ตรวจสอบฟิลด์ที่บังคับ (สำหรับแก้ไขชื่อ/หมวดหมู่)
+  if (!newTitle || !newCategory) {
     return NextResponse.json(
-      { message: "กรุณาระบุชื่อสินค้าและจำนวนให้ถูกต้อง" },
+      { message: "กรุณาระบุชื่อสินค้าและหมวดหมู่" },
       { status: 400 }
     );
   }
 
-  // สร้าง object สำหรับอัปเดต
   const updateData = {
     title: newTitle,
     img: newImg,
     content: newContent,
-    quantity: newQuantity,
+    category: newCategory,
   };
 
-  // ถ้ามี newCategory ส่งมาด้วย ให้ใส่ลงไป
-  if (newCategory) {
-    updateData.category = newCategory;
+  // ถ้ามี newQuantity ส่งมาด้วย (มาจาก modal เบิก/เติม) ให้ตรวจสอบและอัปเดต
+  if (typeof newQuantity !== "undefined") {
+    if (!Number.isInteger(newQuantity) || newQuantity < 0) {
+      return NextResponse.json(
+        { message: "จำนวนสินค้าไม่ถูกต้อง" },
+        { status: 400 }
+      );
+    }
+    updateData.quantity = newQuantity;
   }
 
   try {
@@ -56,7 +61,7 @@ export async function PUT(req, { params }) {
     }
     return NextResponse.json({ message: "อัปเดตสำเร็จ", post: updated }, { status: 200 });
   } catch (err) {
-    console.error(err);
+    console.error("PUT /api/posts/[id] error:", err);
     return NextResponse.json({ message: "เกิดข้อผิดพลาด", error: err }, { status: 500 });
   }
 }
