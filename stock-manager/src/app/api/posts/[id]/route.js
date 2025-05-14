@@ -18,39 +18,47 @@ export async function GET(req, { params }) {
 
 // ✅ PUT - รับ params และ await เช่นเดียวกัน
 export async function PUT(req, { params }) {
+  // await params ตาม Next.js 15+
   const { id } = await params;
-  const {
-    newTitle,
-    newImg,
-    newContent,
-    newQuantity,     // จะมีเมื่อมาจาก Withdraw/AddStock
-    newCategory,     // จะมีเมื่อมาจาก EditPostPage
-  } = await req.json();
+  const body = await req.json();
 
-  // ตรวจสอบฟิลด์ที่บังคับ (สำหรับแก้ไขชื่อ/หมวดหมู่)
-  if (!newTitle || !newCategory) {
-    return NextResponse.json(
-      { message: "กรุณาระบุชื่อสินค้าและหมวดหมู่" },
-      { status: 400 }
-    );
+  // สร้าง object สำหรับอัปเดตฟิลด์ที่มีส่งมา
+  const updateData = {};
+
+  // ถ้ามี newTitle ให้อัปเดต title
+  if (typeof body.newTitle === "string") {
+    updateData.title = body.newTitle;
   }
-
-  const updateData = {
-    title: newTitle,
-    img: newImg,
-    content: newContent,
-    category: newCategory,
-  };
-
-  // ถ้ามี newQuantity ส่งมาด้วย (มาจาก modal เบิก/เติม) ให้ตรวจสอบและอัปเดต
-  if (typeof newQuantity !== "undefined") {
-    if (!Number.isInteger(newQuantity) || newQuantity < 0) {
+  // ถ้ามี newImg ให้อัปเดต img
+  if (typeof body.newImg === "string") {
+    updateData.img = body.newImg;
+  }
+  // ถ้ามี newContent ให้อัปเดต content
+  if (typeof body.newContent === "string") {
+    updateData.content = body.newContent;
+  }
+  // ถ้ามี newCategory ให้อัปเดต category
+  if (typeof body.newCategory === "string") {
+    updateData.category = body.newCategory;
+  }
+  // ถ้ามี newQuantity ให้อัปเดต quantity
+  if (typeof body.newQuantity !== "undefined") {
+    const q = body.newQuantity;
+    if (!Number.isInteger(q) || q < 0) {
       return NextResponse.json(
         { message: "จำนวนสินค้าไม่ถูกต้อง" },
         { status: 400 }
       );
     }
-    updateData.quantity = newQuantity;
+    updateData.quantity = q;
+  }
+
+  // ถ้าไม่มีฟิลด์ใดเลย ก็ไม่ต้องอัปเดต
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json(
+      { message: "ไม่มีข้อมูลที่จะอัปเดต" },
+      { status: 400 }
+    );
   }
 
   try {
