@@ -53,87 +53,114 @@ const tableContainerRef = useRef(null);
 
 // โหลดรายการหมวดหมู่
 useEffect(() => {
-    const fetchCategories = async () => {
-      const res = await fetch("/api/categories");
-      const data = await res.json();
-      setCategories(data.categories || []);
-    };
-    fetchCategories();
-  }, []);
+  const fetchCategories = async () => {
+    const res = await fetch("/api/categories");
+    const data = await res.json();
+    setCategories(data.categories || []);
+  };
+  fetchCategories();
+}, []);
 
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (selectedCategory) params.set("category", selectedCategory);
-    router.replace(`?${params.toString()}`, { scroll: false });
-    setPostData([]);
-    setHasMore(true);
-    setPage(1);
-  }, [selectedCategory, router]);
+// เมื่อ selectedCategory เปลี่ยน → set URL + reset postData
+useEffect(() => {
+  const params = new URLSearchParams();
+  if (selectedCategory) params.set("category", selectedCategory);
+  router.replace(`?${params.toString()}`, { scroll: false });
+  
+  setPostData([]);   // reset ก่อนโหลดใหม่
+  setHasMore(true);
+  setPage(1);
+}, [selectedCategory, router]);
 
-  const fetchPosts = useCallback(async () => {
-    if (!hasMore || isLoading) return;
-    setIsLoading(true);
-    try {
-      const lastItem = postData[postData.length - 1];
-      const lastUpdatedAt = lastItem?.updatedAt;
-      const url = new URL("/api/posts", window.location.origin);
-      url.searchParams.set("limit", LIMIT);
-      if (lastUpdatedAt) url.searchParams.set("lastUpdatedAt", lastUpdatedAt);
-      if (selectedCategory) url.searchParams.set("category", selectedCategory);
+// โหลดสินค้า (fetchPosts)
+const fetchPosts = useCallback(async () => {
+  if (!hasMore || isLoading) return;
+  setIsLoading(true);
 
-      const res = await fetch(url.toString(), { cache: "no-store" });
-      const data = await res.json();
-      if (!Array.isArray(data.posts) || data.posts.length < LIMIT) setHasMore(false);
+  try {
+    const lastItem = postData[postData.length - 1];
+    const lastUpdatedAt = lastItem?.updatedAt;
 
-      setPostData(prev => {
-        const existingIds = new Set(prev.map(p => p._id));
-        const uniqueNew = data.posts.filter(p => !existingIds.has(p._id));
-        return [...prev, ...uniqueNew];
-      });
-    } catch (err) {
-      console.error("Error loading posts:", err);
-      setHasMore(false);
-    } finally {
-      setIsLoading(false);
+    const url = new URL("/api/posts", window.location.origin);
+    url.searchParams.set("limit", LIMIT);
+    // ส่ง page ไป API ถ้าต้องการ pagination แบบ offset
+    url.searchParams.set("page", page);
+    if (lastUpdatedAt) {
+      url.searchParams.set("lastUpdatedAt", lastUpdatedAt);
     }
-  }, [postData, hasMore, isLoading, selectedCategory]);
+    if (selectedCategory) {
+      url.searchParams.set("category", selectedCategory);
+    }
 
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+    const res = await fetch(url.toString(), { cache: "no-store" });
+    const data = await res.json();
 
+    if (!Array.isArray(data.posts) || data.posts.length < LIMIT) {
+      setHasMore(false);
+    }
+
+    setPostData((prev) => {
+      const existingIds = new Set(prev.map((p) => p._id));
+      const uniqueNew = data.posts.filter((p) => !existingIds.has(p._id));
+      return [...prev, ...uniqueNew];
+    });
+  } catch (err) {
+    console.error("Error loading posts:", err);
+    setHasMore(false);
+  } finally {
+    setIsLoading(false);
+  }
+}, [postData, hasMore, isLoading, selectedCategory]);
+
+useEffect(() => {
+  fetchPosts();
+}, [page, selectedCategory]);
+
+  // ✅ IntersectionObserver for lazyload
   useEffect(() => {
     if (observerRef.current) observerRef.current.disconnect();
+
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && !isLoading && hasMore) {
         setPage(prev => prev + 1);
       }
-    }, { rootMargin: "200px" });
+    }, {
+      rootMargin: "200px",
+    });
+
     const sentinel = document.getElementById("load-more-sentinel");
     if (sentinel) observer.observe(sentinel);
     observerRef.current = observer;
+
     return () => observer.disconnect();
   }, [isLoading, hasMore]);
 
-  const handleSearch = useCallback(debounce(value => {
+  const handleSearch = useCallback(debounce((value) => {
     setSearchQuery(value);
   }, 300), []);
 
   const filteredPosts = useMemo(() => {
-    const filtered = postData.filter(post =>
+    let filtered = postData.filter(post =>
       post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.content?.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    if (sortOrder === "asc") filtered.sort((a, b) => a.quantity - b.quantity);
-    else if (sortOrder === "desc") filtered.sort((a, b) => b.quantity - a.quantity);
+
+    if (sortOrder === "asc") {
+      filtered.sort((a, b) => a.quantity - b.quantity);
+    } else if (sortOrder === "desc") {
+      filtered.sort((a, b) => b.quantity - a.quantity);
+    }
+
     return filtered;
   }, [postData, searchQuery, sortOrder]);
 
   const handleSort = () => {
-    setSortOrder(prev => prev === "" ? "asc" : prev === "asc" ? "desc" : "");
+    if (sortOrder === "") setSortOrder("asc");
+    else if (sortOrder === "asc") setSortOrder("desc");
+    else setSortOrder("");
   };
 
-  const formatDate = dateString => {
+  const formatDate = (dateString) => {
     if (!dateString) return "-";
     return new Intl.DateTimeFormat("th-TH", {
       year: "numeric", month: "short", day: "numeric",
@@ -186,9 +213,9 @@ useEffect(() => {
               value={selectedCategory}
               onChange={(e) => {
                 setSelectedCategory(e.target.value);
-                setPage(1);
-                setPostData([]);
-                setHasMore(true);
+                // setPage(1);
+                // setPostData([]);
+                // setHasMore(true);
               }}
               className="bg-white border border-gray-300 px-3 py-2 rounded-md shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
             >
