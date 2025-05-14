@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import debounce from "lodash.debounce";
+import { useSearchParams, useRouter } from "next/navigation"; // เพิ่ม import
+
 import {
   PlusCircle, Clock, Eye, Edit, Plus, Trash2, PackageMinus,
   ArrowUp, ArrowDown, ArrowUpDown, Search
@@ -20,31 +22,37 @@ const CategoryModal = dynamic(() => import("./components/Modal/CategoryModal"), 
 const LIMIT = 20; // จำนวนสินค้าที่โหลดต่อรอบ
 
 export default function Home() {
+  
   const [postData, setPostData] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState("");
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+const [searchQuery, setSearchQuery] = useState("");
+const [sortOrder, setSortOrder] = useState("");
+const [page, setPage] = useState(1);
+const [hasMore, setHasMore] = useState(true);
+const [isLoading, setIsLoading] = useState(false);
 
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+const [selectedProduct, setSelectedProduct] = useState(null);
+const [showModal, setShowModal] = useState(false);
 
-  const [withdrawProduct, setWithdrawProduct] = useState(null);
-  const [withdrawAmount, setWithdrawAmount] = useState(1);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+const [withdrawProduct, setWithdrawProduct] = useState(null);
+const [withdrawAmount, setWithdrawAmount] = useState(1);
+const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
-  const [addProduct, setAddProduct] = useState(null);
-  const [addAmount, setAddAmount] = useState(1);
-  const [showAddModal, setShowAddModal] = useState(false);
+const [addProduct, setAddProduct] = useState(null);
+const [addAmount, setAddAmount] = useState(1);
+const [showAddModal, setShowAddModal] = useState(false);
 
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
+const [showCategoryModal, setShowCategoryModal] = useState(false);
 
-  // ด้านบนสุดของ component
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
+const [categories, setCategories] = useState([]);
+const searchParams = useSearchParams();
+const router = useRouter();
+const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "");
 
-  useEffect(() => {
+const observerRef = useRef(null);
+const tableContainerRef = useRef(null);
+
+// โหลดรายการหมวดหมู่
+useEffect(() => {
     const fetchCategories = async () => {
       const res = await fetch("/api/categories");
       const data = await res.json();
@@ -53,102 +61,79 @@ export default function Home() {
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (selectedCategory) params.set("category", selectedCategory);
+    router.replace(`?${params.toString()}`, { scroll: false });
+    setPostData([]);
+    setHasMore(true);
+    setPage(1);
+  }, [selectedCategory, router]);
 
+  const fetchPosts = useCallback(async () => {
+    if (!hasMore || isLoading) return;
+    setIsLoading(true);
+    try {
+      const lastItem = postData[postData.length - 1];
+      const lastUpdatedAt = lastItem?.updatedAt;
+      const url = new URL("/api/posts", window.location.origin);
+      url.searchParams.set("limit", LIMIT);
+      if (lastUpdatedAt) url.searchParams.set("lastUpdatedAt", lastUpdatedAt);
+      if (selectedCategory) url.searchParams.set("category", selectedCategory);
 
-  const observerRef = useRef(null);
-  const tableContainerRef = useRef(null);
+      const res = await fetch(url.toString(), { cache: "no-store" });
+      const data = await res.json();
+      if (!Array.isArray(data.posts) || data.posts.length < LIMIT) setHasMore(false);
 
-const fetchPosts = useCallback(async () => {
-  if (!hasMore || isLoading) return;
-
-  setIsLoading(true);
-  try {
-    const lastItem = postData[postData.length - 1];
-    const lastUpdatedAt = lastItem?.updatedAt;
-
-    const url = new URL("/api/posts", window.location.origin);
-    url.searchParams.set("limit", LIMIT);
-
-    // เอาเงื่อนไข updatedAt ไว้ตรงนี้
-    if (lastUpdatedAt) {
-      url.searchParams.set("lastUpdatedAt", lastUpdatedAt);
-    }
-    // กรองตาม category ทุกครั้ง
-    if (selectedCategory) {
-      url.searchParams.set("category", selectedCategory);
-    }
-
-    const res = await fetch(url.toString(), { cache: "no-store" });
-    const data = await res.json();
-
-    // ถ้าของไม่พอรอบเดียว ก็ตั้ง hasMore=false
-    if (!Array.isArray(data.posts) || data.posts.length < LIMIT) {
+      setPostData(prev => {
+        const existingIds = new Set(prev.map(p => p._id));
+        const uniqueNew = data.posts.filter(p => !existingIds.has(p._id));
+        return [...prev, ...uniqueNew];
+      });
+    } catch (err) {
+      console.error("Error loading posts:", err);
       setHasMore(false);
+    } finally {
+      setIsLoading(false);
     }
-
-    setPostData(prev => {
-      const existingIds = new Set(prev.map(p => p._id));
-      const uniqueNew = data.posts.filter(p => !existingIds.has(p._id));
-      return [...prev, ...uniqueNew];
-    });
-  } catch (err) {
-    console.error("Error loading posts:", err);
-    setHasMore(false);
-  } finally {
-    setIsLoading(false);
-  }
-}, [postData, hasMore, isLoading, selectedCategory]);
-
+  }, [postData, hasMore, isLoading, selectedCategory]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  // ✅ IntersectionObserver for lazyload
   useEffect(() => {
     if (observerRef.current) observerRef.current.disconnect();
-
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && !isLoading && hasMore) {
         setPage(prev => prev + 1);
       }
-    }, {
-      rootMargin: "200px",
-    });
-
+    }, { rootMargin: "200px" });
     const sentinel = document.getElementById("load-more-sentinel");
     if (sentinel) observer.observe(sentinel);
     observerRef.current = observer;
-
     return () => observer.disconnect();
   }, [isLoading, hasMore]);
 
-  const handleSearch = useCallback(debounce((value) => {
+  const handleSearch = useCallback(debounce(value => {
     setSearchQuery(value);
   }, 300), []);
 
   const filteredPosts = useMemo(() => {
-    let filtered = postData.filter(post =>
+    const filtered = postData.filter(post =>
       post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.content?.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
-    if (sortOrder === "asc") {
-      filtered.sort((a, b) => a.quantity - b.quantity);
-    } else if (sortOrder === "desc") {
-      filtered.sort((a, b) => b.quantity - a.quantity);
-    }
-
+    if (sortOrder === "asc") filtered.sort((a, b) => a.quantity - b.quantity);
+    else if (sortOrder === "desc") filtered.sort((a, b) => b.quantity - a.quantity);
     return filtered;
   }, [postData, searchQuery, sortOrder]);
 
   const handleSort = () => {
-    if (sortOrder === "") setSortOrder("asc");
-    else if (sortOrder === "asc") setSortOrder("desc");
-    else setSortOrder("");
+    setSortOrder(prev => prev === "" ? "asc" : prev === "asc" ? "desc" : "");
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = dateString => {
     if (!dateString) return "-";
     return new Intl.DateTimeFormat("th-TH", {
       year: "numeric", month: "short", day: "numeric",

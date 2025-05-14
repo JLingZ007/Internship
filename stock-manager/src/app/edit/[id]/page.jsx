@@ -42,12 +42,13 @@ function EditPostPage() {
       const { post } = await res.json();
 
       setFormData({
-        title: post.title || "",
-        content: post.content || "",
-        img: post.img || "",
-        preview: post.img || null,
-        category: post.category?._id || "",  // ✅ เซ็ตหมวดหมู่เดิม
-      });
+  title: post.title || "",
+  content: post.content || "",
+  img: post.img || "",
+  preview: post.img || null,
+  category: post.category?._id || post.category || "", // ✅ แก้ตรงนี้
+});
+
     } catch (error) {
       const Swal = (await import("sweetalert2")).default;
       Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: error.message });
@@ -80,42 +81,46 @@ function EditPostPage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const { title, content, img, category } = formData;
+  e.preventDefault();
+  const { title, content, img, category } = formData;
 
-    if (!title || !category) {
-      const Swal = (await import("sweetalert2")).default;
-      Swal.fire({ icon: "warning", title: "กรุณาระบุชื่อสินค้าและหมวดหมู่" });
-      return;
+  if (!title || !category) {
+    const Swal = (await import("sweetalert2")).default;
+    Swal.fire({ icon: "warning", title: "กรุณาระบุชื่อสินค้าและหมวดหมู่" });
+    return;
+  }
+
+  try {
+    setIsSubmitting(true);
+    const res = await fetch(`/api/posts/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        newTitle: title,
+        newImg: img || "/image.svg",
+        newContent: content,
+        newCategory: category,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || "ไม่สามารถอัปเดตได้");
     }
 
-    try {
-      setIsSubmitting(true);
-      const res = await fetch(`/api/posts/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          newTitle: title,
-          newImg: img || "/image.svg",
-          newContent: content,
-          newCategory: category,  // ✅ ส่งหมวดหมู่ไปด้วย
-        }),
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "ไม่สามารถอัปเดตได้");
-      }
+    const Swal = (await import("sweetalert2")).default;
+    Swal.fire({ icon: "success", title: "แก้ไขสำเร็จ", timer: 1000, showConfirmButton: false });
 
-      const Swal = (await import("sweetalert2")).default;
-      Swal.fire({ icon: "success", title: "แก้ไขสำเร็จ", timer: 1000, showConfirmButton: false });
-      setTimeout(() => router.push("/"), 1100);
-    } catch (error) {
-      const Swal = (await import("sweetalert2")).default;
-      Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: error.message });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    // ✅ กลับไปยังหน้าหลักพร้อมส่ง category เดิมกลับไปใน query string
+    setTimeout(() => router.push("/?category=" + category), 1100);
+  } catch (error) {
+    const Swal = (await import("sweetalert2")).default;
+    Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: error.message });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   if (loading) {
     return (

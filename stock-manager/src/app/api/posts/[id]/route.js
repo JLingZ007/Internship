@@ -7,7 +7,8 @@ export async function GET(req, { params }) {
   const { id } = await params; // ✅ ต้อง await ตาม Next.js 15+
   
   await connectMongoDB();
-  const post = await Post.findById(id);
+    // ✅ populate หมวดหมู่ เพื่อดึง name มาแสดงด้วย
+  const post = await Post.findById(id).populate("category"); // <== เพิ่มตรงนี้
 
   if (!post) {
     return NextResponse.json({ message: "ไม่พบสินค้า" }, { status: 404 });
